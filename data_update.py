@@ -113,9 +113,7 @@ def update_fundamentals():
             print("Fundamentals table updated.")
 
 
-def lambda_handler(event, context):
-    quandl.ApiConfig.api_key = "-wp9r15KDRKBr5ossU5y"
-    DATABASE_URI = "postgresql://eadains:xD838BAz5qsC@main-db.ca3bzeufu2je.us-east-2.rds.amazonaws.com:5432/main"
+if __name__ == "__main__":
     update_tickers()
     update_prices()
     update_fundamentals()
