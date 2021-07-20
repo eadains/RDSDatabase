@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import quandl
 
+quandl.ApiConfig.api_key = QUANDL_KEY
+
 
 def update_tickers():
     conn = pg.connect(DATABASE_URI)
