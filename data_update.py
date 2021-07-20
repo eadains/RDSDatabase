@@ -1,17 +1,15 @@
-from config import QUANDL_KEY, DATABASE_URI
-
 import psycopg2 as pg
 from psycopg2.extras import execute_values
 import pandas as pd
 import numpy as np
 import quandl
 
+from config import QUANDL_KEY, DATABASE_URI
+
 quandl.ApiConfig.api_key = QUANDL_KEY
 
 
-def update_tickers():
-    conn = pg.connect(DATABASE_URI)
-
+def get_tickers(conn):
     with conn:
         with conn.cursor() as cur:
             cur.execute("SELECT MAX(lastupdated) FROM tickers;")
@@ -31,19 +29,10 @@ def update_tickers():
     # Drop table column because we don't need it
     tickers = tickers.drop(columns=["table"])
 
-    print("Tickers read into memory")
-
-    sql = f"INSERT INTO tickers ({', '.join(tickers.columns)}) VALUES %s ON CONFLICT (permaticker) DO UPDATE SET ({', '.join(tickers.columns)}) = ({', '.join('EXCLUDED.' + tickers.columns)})"
-
-    with conn:
-        with conn.cursor() as cur:
-            execute_values(cur, sql, list(tickers.itertuples(index=False, name=None)))
-            print("Tickers table updated.")
+    return tickers
 
 
-def update_prices():
-    conn = pg.connect(DATABASE_URI)
-
+def get_prices(conn):
     with conn:
         with conn.cursor() as cur:
             cur.execute("SELECT MAX(lastupdated) FROM prices;")
@@ -63,32 +52,16 @@ def update_prices():
     sep = sep.replace({np.nan: None})
     sep = sep.dropna(subset=["ticker"])
 
-    sep_sql = f"INSERT INTO prices ({', '.join(sep.columns)}) VALUES %s ON CONFLICT (ticker, date, frequency) DO UPDATE SET ({', '.join(sep.columns)}) = ({', '.join('EXCLUDED.' + sep.columns)})"
-
-    print("SEP read into memory")
-
     sfp = quandl.get_table("SHARADAR/SFP", paginate=True, lastupdated={"gt": date})
     sfp = sfp.merge(valid_tickers, on="ticker", how="left")
     sfp["frequency"] = "DAILY"
     sfp = sfp.replace({np.nan: None})
     sfp = sfp.dropna(subset=["ticker"])
 
-    sfp_sql = f"INSERT INTO prices ({', '.join(sfp.columns)}) VALUES %s ON CONFLICT (ticker, date, frequency) DO UPDATE SET ({', '.join(sfp.columns)}) = ({', '.join('EXCLUDED.' + sfp.columns)})"
-
-    print("SFP read into memory")
-
-    with conn:
-        with conn.cursor() as cur:
-            execute_values(cur, sep_sql, list(sep.itertuples(index=False, name=None)))
-            print("SEP written into database.")
-            execute_values(cur, sfp_sql, list(sfp.itertuples(index=False, name=None)))
-            print("SFP written into database.")
+    return sep, sfp
 
 
-def update_fundamentals():
-    quandl.read_key()
-    conn = pg.connect(DATABASE_URI)
-
+def get_fundamentals(conn):
     with conn:
         with conn.cursor() as cur:
             cur.execute("SELECT MAX(lastupdated) FROM fundamentals;")
@@ -105,17 +78,38 @@ def update_fundamentals():
     sf1 = sf1.replace({np.nan: None})
     sf1 = sf1.dropna(subset=["ticker"])
 
-    sql = f"INSERT INTO fundamentals ({', '.join(sf1.columns)}) VALUES %s ON CONFLICT (ticker, dimension, datekey, reportperiod) DO UPDATE SET ({', '.join(sf1.columns)}) = ({', '.join('EXCLUDED.' + sf1.columns)})"
+    return sf1
 
-    print("SF1 read into memory")
+
+def update_database():
+    conn = pg.connect(DATABASE_URI)
+    tickers = get_tickers(conn)
+    print("Tickers read into memory.")
+    sep, sfp = get_prices(conn)
+    print("Prices read into memory.")
+    sf1 = get_fundamentals(conn)
+    print("Fundamentals read into memory.")
+
+    tickers_sql = f"INSERT INTO tickers ({', '.join(tickers.columns)}) VALUES %s ON CONFLICT (permaticker) DO UPDATE SET ({', '.join(tickers.columns)}) = ({', '.join('EXCLUDED.' + tickers.columns)})"
+    sep_sql = f"INSERT INTO prices ({', '.join(sep.columns)}) VALUES %s ON CONFLICT (ticker, date, frequency) DO UPDATE SET ({', '.join(sep.columns)}) = ({', '.join('EXCLUDED.' + sep.columns)})"
+    sfp_sql = f"INSERT INTO prices ({', '.join(sfp.columns)}) VALUES %s ON CONFLICT (ticker, date, frequency) DO UPDATE SET ({', '.join(sfp.columns)}) = ({', '.join('EXCLUDED.' + sfp.columns)})"
+    sf1_sql = f"INSERT INTO fundamentals ({', '.join(sf1.columns)}) VALUES %s ON CONFLICT (ticker, dimension, datekey, reportperiod) DO UPDATE SET ({', '.join(sf1.columns)}) = ({', '.join('EXCLUDED.' + sf1.columns)})"
 
     with conn:
         with conn.cursor() as cur:
-            execute_values(cur, sql, list(sf1.itertuples(index=False, name=None)))
+            execute_values(
+                cur, tickers_sql, list(tickers.itertuples(index=False, name=None))
+            )
+            print("Tickers table updated.")
+            execute_values(cur, sep_sql, list(sep.itertuples(index=False, name=None)))
+            print("SEP written into database.")
+            execute_values(cur, sfp_sql, list(sfp.itertuples(index=False, name=None)))
+            print("SFP written into database.")
+            execute_values(cur, sf1_sql, list(sf1.itertuples(index=False, name=None)))
             print("Fundamentals table updated.")
+
+    conn.close()
 
 
 if __name__ == "__main__":
-    update_tickers()
-    update_prices()
-    update_fundamentals()
+    update_database()

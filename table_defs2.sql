@@ -43,7 +43,7 @@ CREATE TABLE prices(
     closeunadj NUMERIC,
     lastupdated DATE,
     PRIMARY KEY(ticker, date, frequency),
-    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker)
+    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE TABLE fundamentals(
@@ -160,7 +160,7 @@ CREATE TABLE fundamentals(
     reportperiod DATE,
     lastupdated DATE,
     PRIMARY KEY (ticker, dimension, datekey, reportperiod),
-    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker)
+    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE TABLE options(
@@ -179,5 +179,5 @@ CREATE TABLE options(
     theta NUMERIC,
     underprice NUMERIC,
     PRIMARY KEY (ticker, date),
-    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker)
+    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker) DEFERRABLE INITIALLY DEFERRED
 );
