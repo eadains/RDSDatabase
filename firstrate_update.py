@@ -7,6 +7,14 @@ import io
 
 from config import DATABASE_URI
 
+conn = pg.connect(DATABASE_URI)
+with conn:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT MAX(date) FROM prices WHERE (frequency='MINUTE' AND ticker='^GSPC');"
+        )
+        date = cur.fetchall()[0][0]
+
 r = requests.get(
     "https://firstratedata.com/datafile/n-Uja3Tm-E60YzyrD8FpUQ/9841", stream=True
 )
@@ -16,7 +24,11 @@ file = zipfile.ZipFile(file)
 spx = pd.read_csv(
     file.open("SPX_1min.txt"), names=["date", "open", "high", "low", "close", "?"]
 )
+# Get only new records for insertion
+spx = spx[spx["date"] > date]
+# Firstrate includes a column thats always zero for some reason
 spx = spx.drop(columns=["?"])
+# Set database columns
 spx["frequency"] = "MINUTE"
 spx["ticker"] = "^GSPC"
 
