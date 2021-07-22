@@ -38,22 +38,13 @@ def get_prices(conn):
             cur.execute("SELECT MAX(lastupdated) FROM prices;")
             date = cur.fetchone()[0]
 
-        with conn.cursor() as cur:
-            cur.execute("SELECT permaticker, ticker FROM tickers")
-            results = cur.fetchall()
-            # Get all tickers we have defined in the tickers table
-            valid_tickers = pd.DataFrame(results, columns=["permaticker", "ticker"])
-
     sep = quandl.get_table("SHARADAR/SEP", paginate=True, lastupdated={"gt": date})
-    # Get permaticker via merge
-    sep = sep.merge(valid_tickers, on="ticker", how="left")
     # Set data frequency
     sep["frequency"] = "DAILY"
     sep = sep.replace({np.nan: None})
     sep = sep.dropna(subset=["ticker"])
 
     sfp = quandl.get_table("SHARADAR/SFP", paginate=True, lastupdated={"gt": date})
-    sfp = sfp.merge(valid_tickers, on="ticker", how="left")
     sfp["frequency"] = "DAILY"
     sfp = sfp.replace({np.nan: None})
     sfp = sfp.dropna(subset=["ticker"])
@@ -67,14 +58,7 @@ def get_fundamentals(conn):
             cur.execute("SELECT MAX(lastupdated) FROM fundamentals;")
             date = cur.fetchone()[0]
 
-        with conn.cursor() as cur:
-            cur.execute("SELECT permaticker, ticker FROM tickers")
-            results = cur.fetchall()
-            # Get all tickers we have defined in the tickers table
-            valid_tickers = pd.DataFrame(results, columns=["permaticker", "ticker"])
-
     sf1 = quandl.get_table("SHARADAR/SF1", paginate=True, lastupdated={"gt": date})
-    sf1 = sf1.merge(valid_tickers, on="ticker", how="left")
     sf1 = sf1.replace({np.nan: None})
     sf1 = sf1.dropna(subset=["ticker"])
 
@@ -108,6 +92,7 @@ def update_database():
             execute_values(cur, sf1_sql, list(sf1.itertuples(index=False, name=None)))
             print("Fundamentals table updated.")
 
+    print("Transaction successfully committed.")
     conn.close()
 
 

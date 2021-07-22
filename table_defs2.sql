@@ -30,7 +30,6 @@ CREATE TABLE tickers(
 );
 
 CREATE TABLE prices(
-    permaticker VARCHAR,
     ticker VARCHAR,
     frequency VARCHAR CHECK (frequency = 'DAILY' OR frequency = 'MINUTE'),
     date TIMESTAMP,
@@ -42,8 +41,7 @@ CREATE TABLE prices(
     closeadj NUMERIC,
     closeunadj NUMERIC,
     lastupdated DATE,
-    PRIMARY KEY(ticker, date, frequency),
-    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker) DEFERRABLE INITIALLY DEFERRED
+    PRIMARY KEY(ticker, date, frequency)
 );
 
 CREATE TABLE fundamentals(
@@ -152,7 +150,6 @@ CREATE TABLE fundamentals(
     bvps NUMERIC,
     tbvps NUMERIC,
     price NUMERIC,
-    permaticker VARCHAR,
     ticker VARCHAR,
     dimension VARCHAR,
     calendardate DATE,
@@ -160,7 +157,6 @@ CREATE TABLE fundamentals(
     reportperiod DATE,
     lastupdated DATE,
     PRIMARY KEY (ticker, dimension, datekey, reportperiod),
-    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE TABLE options(
@@ -179,5 +175,5 @@ CREATE TABLE options(
     theta NUMERIC,
     underprice NUMERIC,
     PRIMARY KEY (ticker, date),
-    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker) DEFERRABLE INITIALLY DEFERRED
+    FOREIGN KEY (permaticker, ticker) REFERENCES tickers (permaticker, ticker) ON UPDATE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
