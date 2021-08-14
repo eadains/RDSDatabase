@@ -35,7 +35,7 @@ def get_tickers(conn):
 def get_prices(conn):
     with conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT MAX(lastupdated) FROM prices;")
+            cur.execute("SELECT MAX(lastupdated) FROM prices WHERE frequency='DAILY'")
             date = cur.fetchone()[0]
 
     sep = quandl.get_table("SHARADAR/SEP", paginate=True, lastupdated={"gt": date})

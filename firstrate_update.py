@@ -5,7 +5,7 @@ import requests
 import zipfile
 import io
 
-from config import DATABASE_URI
+from config import DATABASE_URI, FIRSTRATE_URL
 
 conn = pg.connect(DATABASE_URI)
 with conn:
@@ -15,14 +15,14 @@ with conn:
         )
         date = cur.fetchall()[0][0]
 
-r = requests.get(
-    "https://firstratedata.com/datafile/n-Uja3Tm-E60YzyrD8FpUQ/9841", stream=True
-)
+r = requests.get(FIRSTRATE_URL, stream=True)
 file = io.BytesIO(r.raw.read())
 file = zipfile.ZipFile(file)
 
 spx = pd.read_csv(
-    file.open("SPX_1min.txt"), names=["date", "open", "high", "low", "close", "?"]
+    file.open("SPX_1min.txt"),
+    names=["date", "open", "high", "low", "close", "?"],
+    parse_dates=["date"],
 )
 # Get only new records for insertion
 spx = spx[spx["date"] > date]
