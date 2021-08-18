@@ -21,7 +21,7 @@ file = zipfile.ZipFile(file)
 
 spx = pd.read_csv(
     file.open("SPX_1min.txt"),
-    names=["date", "open", "high", "low", "close", "?"],
+    names=["date", "open", "high", "low", "close"],
     parse_dates=["date"],
 )
 # Get only new records for insertion

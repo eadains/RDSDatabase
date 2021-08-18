@@ -1,12 +1,23 @@
 import psycopg2 as pg
 from psycopg2.extras import execute_values
-import pandas as pd
 import numpy as np
+import pandas as pd
 import quandl
+import zipfile
 
 from config import QUANDL_KEY, DATABASE_URI
 
 quandl.ApiConfig.api_key = QUANDL_KEY
+
+
+def get_csv_zip(filepath):
+    """
+    Gets CSV file from inside zipfile specified by filepath string
+    """
+    file = zipfile.ZipFile(filepath)
+    csv_name = file.namelist()[0]
+    frame = pd.read_csv(file.open(csv_name))
+    return frame
 
 
 def get_tickers(conn):
@@ -38,13 +49,15 @@ def get_prices(conn):
             cur.execute("SELECT MAX(lastupdated) FROM prices WHERE frequency='DAILY'")
             date = cur.fetchone()[0]
 
-    sep = quandl.get_table("SHARADAR/SEP", paginate=True, lastupdated={"gt": date})
+    quandl.export_table("SHARADAR/SEP", lastupdated={"gt": date}, filename="sep.zip")
+    sep = get_csv_zip("sep.zip")
     # Set data frequency
     sep["frequency"] = "DAILY"
     sep = sep.replace({np.nan: None})
     sep = sep.dropna(subset=["ticker"])
 
-    sfp = quandl.get_table("SHARADAR/SFP", paginate=True, lastupdated={"gt": date})
+    quandl.export_table("SHARADAR/SFP", lastupdated={"gt": date}, filename="sfp.zip")
+    sfp = get_csv_zip("sfp.zip")
     sfp["frequency"] = "DAILY"
     sfp = sfp.replace({np.nan: None})
     sfp = sfp.dropna(subset=["ticker"])
@@ -58,7 +71,8 @@ def get_fundamentals(conn):
             cur.execute("SELECT MAX(lastupdated) FROM fundamentals;")
             date = cur.fetchone()[0]
 
-    sf1 = quandl.get_table("SHARADAR/SF1", paginate=True, lastupdated={"gt": date})
+    quandl.export_table("SHARADAR/SF1", lastupdated={"gt": date}, filename="sf1.zip")
+    sf1 = get_csv_zip("sf1.zip")
     sf1 = sf1.replace({np.nan: None})
     sf1 = sf1.dropna(subset=["ticker"])
 
