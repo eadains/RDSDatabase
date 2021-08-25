@@ -27,7 +27,7 @@ def get_tickers(conn):
             date = cur.fetchone()[0]
 
     tickers = quandl.get_table(
-        "SHARADAR/TICKERS", paginate=True, lastupdated={"gt": date}
+        "SHARADAR/TICKERS", paginate=True, lastupdated={"gte": date}
     )
     # Drop rows with NaN in primary key columns
     tickers = tickers.dropna(subset=["permaticker", "ticker"])
@@ -49,14 +49,14 @@ def get_prices(conn):
             cur.execute("SELECT MAX(lastupdated) FROM prices WHERE frequency='DAILY'")
             date = cur.fetchone()[0]
 
-    quandl.export_table("SHARADAR/SEP", lastupdated={"gt": date}, filename="sep.zip")
+    quandl.export_table("SHARADAR/SEP", lastupdated={"gte": date}, filename="sep.zip")
     sep = get_csv_zip("sep.zip")
     # Set data frequency
     sep["frequency"] = "DAILY"
     sep = sep.replace({np.nan: None})
     sep = sep.dropna(subset=["ticker"])
 
-    quandl.export_table("SHARADAR/SFP", lastupdated={"gt": date}, filename="sfp.zip")
+    quandl.export_table("SHARADAR/SFP", lastupdated={"gte": date}, filename="sfp.zip")
     sfp = get_csv_zip("sfp.zip")
     sfp["frequency"] = "DAILY"
     sfp = sfp.replace({np.nan: None})
@@ -71,7 +71,7 @@ def get_fundamentals(conn):
             cur.execute("SELECT MAX(lastupdated) FROM fundamentals;")
             date = cur.fetchone()[0]
 
-    quandl.export_table("SHARADAR/SF1", lastupdated={"gt": date}, filename="sf1.zip")
+    quandl.export_table("SHARADAR/SF1", lastupdated={"gte": date}, filename="sf1.zip")
     sf1 = get_csv_zip("sf1.zip")
     sf1 = sf1.replace({np.nan: None})
     sf1 = sf1.dropna(subset=["ticker"])
